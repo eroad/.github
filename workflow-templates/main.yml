@@ -3,10 +3,14 @@
 name: Mulesoft Deployment CI with Maven
 
 on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
-  deploy-staging:
+  build:
     runs-on: ubuntu-latest
     steps:    
     - uses: actions/checkout@v2
@@ -41,10 +45,75 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: artifacts
+
+  deploy-staging:
+    runs-on: ubuntu-latest 
+    needs: build
+    if: github.event_name != 'pull_request'
+    environment: staging
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Download artifacts
+      uses: actions/download-artifact@master
+      with:
+        name: artifacts
     - name: Deploy to CloudHub
       env:
         ANYPOINT_EROAD_USERNAME: ${{ secrets.ANYPOINT_EROAD_USERNAME }}
         ANYPOINT_EROAD_PASSWORD: ${{ secrets.ANYPOINT_EROAD_PASSWORD }}
         ENC_KEY: ${{ secrets.ENC_KEY }}
-      run: |
-        mvn package deploy -P cloudhub -DmuleDeploy -Denv=Staging -Danypoint.env=staging -Denc.key=$ENC_KEY -Danypoint.username=$ANYPOINT_EROAD_USERNAME -Danypoint.password=$ANYPOINT_EROAD_PASSWORD
+      run: mvn package deploy -P cloudhub -DmuleDeploy -Denv=Staging -Danypoint.env=staging -Denc.key=$ENC_KEY -Danypoint.username=$ANYPOINT_EROAD_USERNAME -Danypoint.password=$ANYPOINT_EROAD_PASSWORD
+	  
+  deploy-qa:
+    runs-on: ubuntu-latest 
+    needs: build
+    if: github.event_name != 'pull_request'
+    environment: qa
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Download artifacts
+      uses: actions/download-artifact@master
+      with:
+        name: artifacts
+    - name: Deploy to CloudHub
+      env:
+        ANYPOINT_EROAD_USERNAME: ${{ secrets.ANYPOINT_EROAD_USERNAME }}
+        ANYPOINT_EROAD_PASSWORD: ${{ secrets.ANYPOINT_EROAD_PASSWORD }}
+        ENC_KEY: ${{ secrets.ENC_KEY }}
+      run: mvn package deploy -P cloudhub -DmuleDeploy -Denv=QA -Danypoint.env=qa -Denc.key=$ENC_KEY -Danypoint.username=$ANYPOINT_EROAD_USERNAME -Danypoint.password=$ANYPOINT_EROAD_PASSWORD
+	  
+  deploy-production:
+    runs-on: ubuntu-latest 
+    needs: build
+    if: github.event_name != 'pull_request'
+    environment: production
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Download artifacts
+      uses: actions/download-artifact@master
+      with:
+        name: artifacts
+    - name: Deploy to CloudHub
+      env:
+        ANYPOINT_EROAD_USERNAME: ${{ secrets.ANYPOINT_EROAD_USERNAME }}
+        ANYPOINT_EROAD_PASSWORD: ${{ secrets.ANYPOINT_EROAD_PASSWORD }}
+        ENC_KEY: ${{ secrets.ENC_KEY }}
+      run: mvn package deploy -P cloudhub -DmuleDeploy -Denv=Production -Danypoint.env=production -Denc.key=$ENC_KEY -Danypoint.username=$ANYPOINT_EROAD_USERNAME -Danypoint.password=$ANYPOINT_EROAD_PASSWORD
