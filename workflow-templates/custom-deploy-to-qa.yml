@@ -1,6 +1,6 @@
 # This workflow will build a MuleSoft project and deploy to CloudHub
 
-name: Custom - Deploy to QA
+name: Custom - Deploy to QA test
 
 on: [workflow_dispatch]
 
